@@ -1,0 +1,195 @@
+# ============================================================================
+# DOCKER COMPOSE - LOCAL DEVELOPMENT
+# ============================================================================
+# File này chứa tất cả services cần thiết để chạy FastAPI boilerplate ở local
+# Chạy bằng lệnh: docker-compose -f docker-compose.local.yml up -d
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # DATABASE SERVICES
+  # ============================================================================
+  
+  # PostgreSQL Database - Primary Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: fastapi_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: fastapi_boilerplate
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - fastapi_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fastapi_boilerplate"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PgAdmin - Database Management UI
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fastapi_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fastapi_network
+
+  # ============================================================================
+  # REDIS SERVICES
+  # ============================================================================
+  
+  # Redis Cache - For API Response Caching
+  redis-cache:
+    image: redis:7-alpine
+    container_name: fastapi_redis_cache
+    restart: unless-stopped
+    command: redis-server --appendonly yes --replica-read-only no --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_cache_data:/data
+      - ./docker/redis/redis-cache.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - fastapi_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Redis Queue - For Background Tasks (ARQ)
+  redis-queue:
+    image: redis:7-alpine
+    container_name: fastapi_redis_queue
+    restart: unless-stopped
+    command: redis-server --appendonly yes --replica-read-only no
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_queue_data:/data
+      - ./docker/redis/redis-queue.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - fastapi_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Redis Rate Limiter - For Distributed Rate Limiting
+  redis-ratelimit:
+    image: redis:7-alpine
+    container_name: fastapi_redis_ratelimit
+    restart: unless-stopped
+    command: redis-server --appendonly yes --replica-read-only no --maxmemory 128mb --maxmemory-policy volatile-ttl
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_ratelimit_data:/data
+      - ./docker/redis/redis-ratelimit.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - fastapi_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Redis Commander - Redis Management UI
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: fastapi_redis_commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: |
+        cache:redis-cache:6379:0,
+        queue:redis-queue:6379:0,
+        ratelimit:redis-ratelimit:6379:0
+      REDIS_PASSWORD: ""
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin123
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis-cache
+      - redis-queue
+      - redis-ratelimit
+    networks:
+      - fastapi_network
+
+  # ============================================================================
+  # MONITORING & UTILITIES
+  # ============================================================================
+
+  # Mailhog - Email Testing (for development)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: fastapi_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - fastapi_network
+
+  # Nginx - Reverse Proxy (optional for local development)
+  nginx:
+    image: nginx:alpine
+    container_name: fastapi_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    networks:
+      - fastapi_network
+    profiles:
+      - nginx  # Only start when explicitly requested
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  redis_cache_data:
+    driver: local
+  redis_queue_data:
+    driver: local
+  redis_ratelimit_data:
+    driver: local
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  fastapi_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

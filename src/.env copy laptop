@@ -1,0 +1,182 @@
+# ============================================================================
+# FASTAPI BOILERPLATE - ENVIRONMENT CONFIGURATION
+# ============================================================================
+# Environment configuration for FastAPI boilerplate
+# Read carefully before changing values
+
+# ------------- APP SETTINGS -------------
+APP_NAME="FastAPI Boilerplate"
+APP_DESCRIPTION="A fully Async FastAPI boilerplate using SQLAlchemy and Pydantic 2"
+APP_VERSION="0.1.0"
+CONTACT_NAME="Your Name"
+CONTACT_EMAIL="your.email@example.com"
+LICENSE_NAME="MIT"
+
+# ------------- DATABASE SETTINGS -------------
+# PostgreSQL Configuration (Primary Database)
+POSTGRES_USER="postgres"
+POSTGRES_PASSWORD="postgres123"
+POSTGRES_SERVER="192.168.0.33"
+POSTGRES_PORT=5432
+POSTGRES_DB="fastapi_boilerplate"
+
+# Database URL (will be constructed automatically)
+# POSTGRES_URL=""
+
+# MySQL Configuration (Alternative - not used by default)
+MYSQL_USER="mysql_user"
+MYSQL_PASSWORD="mysql_password"
+MYSQL_SERVER="192.168.0.33"
+MYSQL_PORT=3306
+MYSQL_DB="fastapi_boilerplate"
+# MYSQL_URL=""
+
+# SQLite Configuration (Development only)
+SQLITE_URI="./fastapi_boilerplate.db"
+SQLITE_SYNC_PREFIX="sqlite:///"
+SQLITE_ASYNC_PREFIX="sqlite+aiosqlite:///"
+
+# ------------- PGADMIN SETTINGS -------------
+# PgAdmin Configuration for Database Management
+PGADMIN_DEFAULT_EMAIL="admin@example.com"
+PGADMIN_DEFAULT_PASSWORD="admin123"
+PGADMIN_LISTEN_PORT=80
+
+# ------------- SECURITY SETTINGS -------------
+# JWT Configuration
+# Generate SECRET_KEY using: openssl rand -hex 32
+SECRET_KEY="your-super-secret-key-here-replace-with-openssl-rand-hex-32"
+ALGORITHM="HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# ------------- ADMIN USER SETTINGS -------------
+# First Superuser Configuration
+ADMIN_NAME="Hiepn"
+ADMIN_EMAIL="hieppn@huce.edu.vn"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="Huce@1234"
+
+# ------------- CRUD ADMIN PANEL SETTINGS -------------
+# Admin Panel Configuration
+CRUD_ADMIN_ENABLED=true
+CRUD_ADMIN_MOUNT_PATH="/admin"
+
+# Admin Security Settings
+CRUD_ADMIN_ALLOWED_IPS_LIST=""
+CRUD_ADMIN_ALLOWED_NETWORKS_LIST=""
+CRUD_ADMIN_MAX_SESSIONS=10
+CRUD_ADMIN_SESSION_TIMEOUT=1440
+SESSION_SECURE_COOKIES=true
+
+# Admin Tracking Settings
+CRUD_ADMIN_TRACK_EVENTS=true
+CRUD_ADMIN_TRACK_SESSIONS=true
+
+# Admin Redis Configuration (Optional - for production)
+CRUD_ADMIN_REDIS_ENABLED=false
+CRUD_ADMIN_REDIS_HOST="192.168.0.33"
+CRUD_ADMIN_REDIS_PORT=6379
+CRUD_ADMIN_REDIS_DB=0
+CRUD_ADMIN_REDIS_PASSWORD=""
+CRUD_ADMIN_REDIS_SSL=false
+
+# ------------- REDIS CACHE SETTINGS -------------
+
+# Redis Cache Configuration
+REDIS_CACHE_HOST="192.168.0.33"
+REDIS_CACHE_PORT=6379
+
+# ------------- CLIENT-SIDE CACHE SETTINGS -------------
+# HTTP Cache-Control Headers
+CLIENT_CACHE_MAX_AGE=60
+
+# ------------- REDIS QUEUE SETTINGS -------------
+# ARQ Background Tasks Configuration
+REDIS_QUEUE_HOST="192.168.0.33"
+REDIS_QUEUE_PORT=6380
+
+# ------------- REDIS RATE LIMITER SETTINGS -------------
+# Distributed Rate Limiting Configuration
+REDIS_RATE_LIMIT_HOST="192.168.0.33"
+REDIS_RATE_LIMIT_PORT=6381
+
+# ------------- DEFAULT RATE LIMIT SETTINGS -------------
+# Fallback Rate Limit Values
+DEFAULT_RATE_LIMIT_LIMIT=10
+DEFAULT_RATE_LIMIT_PERIOD=3600
+
+# ------------- TIER SETTINGS -------------
+# Default Tier Configuration
+TIER_NAME="free"
+
+# ------------- ENVIRONMENT SETTINGS -------------
+# Application Environment: local, staging, production
+ENVIRONMENT="local"
+
+# ============================================================================
+# DOCKER COMPOSE OVERRIDES
+# ============================================================================
+# When using Docker Compose, uncomment and modify these settings:
+
+# ------------- DATABASE (Docker) -------------
+# POSTGRES_SERVER="postgres"
+# POSTGRES_PORT=5432
+
+# ------------- REDIS SERVICES (Docker) -------------
+# REDIS_CACHE_HOST="redis-cache"
+# REDIS_QUEUE_HOST="redis-queue"  
+# REDIS_RATE_LIMIT_HOST="redis-ratelimit"
+# CRUD_ADMIN_REDIS_HOST="redis-cache"
+
+# ============================================================================
+# PRODUCTION OVERRIDES
+# ============================================================================
+# For production deployment, modify these settings:
+
+# ------------- PRODUCTION SECURITY -------------
+# SECRET_KEY="your-production-secret-key-here"
+# ENVIRONMENT="production"
+# SESSION_SECURE_COOKIES=true
+
+# ------------- PRODUCTION DATABASE -------------
+# POSTGRES_SERVER="your-production-db-host"
+# POSTGRES_USER="your-production-db-user"
+# POSTGRES_PASSWORD="your-production-db-password"
+# POSTGRES_DB="your-production-db-name"
+
+# ------------- PRODUCTION REDIS -------------
+# REDIS_CACHE_HOST="your-production-redis-host"
+# REDIS_QUEUE_HOST="your-production-redis-host"
+# REDIS_RATE_LIMIT_HOST="your-production-redis-host"
+
+# ------------- PRODUCTION ADMIN -------------
+# ADMIN_PASSWORD="your-super-secure-admin-password"
+# CRUD_ADMIN_REDIS_ENABLED=true
+# CRUD_ADMIN_ALLOWED_IPS_LIST="192.168.1.0/24,10.0.0.0/8"
+
+# ============================================================================
+# DEVELOPMENT NOTES
+# ============================================================================
+# 1. Change SECRET_KEY using: openssl rand -hex 32
+# 2. Change all default passwords before deploy
+# 3. With Docker Compose, use service names instead of 192.168.0.33
+# 4. Environment "local" will expose API docs publicly
+# 5. Environment "staging" only allow superuser access docs  
+# 6. Environment "production" will hide API docs completely
+# 7. Rate limiting works based on user tier
+# 8. Redis can be shared for all services in development
+# 9. Production should separate Redis instances for each service
+# 10. Admin panel defaults to /admin - change CRUD_ADMIN_MOUNT_PATH if needed
+
+# ============================================================================
+# SECURITY CHECKLIST
+# ============================================================================
+# - Changed SECRET_KEY
+# - Changed ADMIN_PASSWORD  
+# - Changed database passwords
+# - Configured CORS if needed
+# - Configured IP restrictions for admin
+# - Enabled secure cookies for production
+# - Reviewed rate limit settings
+# - Configured database backup
