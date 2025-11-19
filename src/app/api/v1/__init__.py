@@ -1,5 +1,7 @@
 from fastapi import APIRouter
 
+from .articles import router as articles_router
+from .categories import router as categories_router
 from .health import router as health_router
 from .login import router as login_router
 from .logout import router as logout_router
@@ -14,6 +16,8 @@ router.include_router(health_router)
 router.include_router(login_router)
 router.include_router(logout_router)
 router.include_router(users_router)
+router.include_router(categories_router)
+router.include_router(articles_router)
 router.include_router(posts_router)
 router.include_router(tasks_router)
 router.include_router(tiers_router)

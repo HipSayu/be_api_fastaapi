@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid6 import uuid7
 
 from ..core.db.database import Base
@@ -30,3 +30,6 @@ class User(Base):
     last_online_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     tier_id: Mapped[int | None] = mapped_column(ForeignKey("tier.id"), index=True, default=None, init=False)
+    
+    # Relationships
+    articles: Mapped[list["Article"]] = relationship("Article", back_populates="author", init=False)

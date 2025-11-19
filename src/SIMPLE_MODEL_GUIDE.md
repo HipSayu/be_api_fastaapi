@@ -38,7 +38,6 @@ class User(Base):
         init=False  # ✅ Cái này OK
     )
 ```
-
 ### 2. **Import Models - QUAN TRỌNG**
 
 ```python
