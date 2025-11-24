@@ -4,8 +4,10 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...core.auth import get_current_active_user, get_current_user_optional
 from ...core.db.database import async_get_db
 from ...crud.article import article_crud
+from ...models.user import User
 from ...schemas.article import (
     ArticleCreate,
     ArticleResponse,
@@ -23,8 +25,7 @@ async def create_article(
     *,
     db: Annotated[AsyncSession, Depends(async_get_db)],
     article_in: ArticleCreate,
-    # TODO: Get current user from authentication
-    current_user_id: int = 1  # Placeholder - should come from auth
+    current_user: Annotated[User, Depends(get_current_active_user)]
 ) -> ArticleResponseSimple:
     """Create new article"""
     # Verify category exists
@@ -35,13 +36,13 @@ async def create_article(
         )
     
     # Verify author exists
-    if not await article_crud.verify_author_exists(db, author_id=current_user_id):
+    if not await article_crud.verify_author_exists(db, author_id=current_user.id):
         raise HTTPException(
             status_code=400,
             detail="Author not found"
         )
     
-    article = await article_crud.create(db, obj_in=article_in, author_id=current_user_id)
+    article = await article_crud.create(db, obj_in=article_in, author_id=current_user.id)
     return ArticleResponseSimple.model_validate(article)
 
 
@@ -151,8 +152,7 @@ async def update_article(
     db: Annotated[AsyncSession, Depends(async_get_db)],
     article_id: int,
     article_in: ArticleUpdate,
-    # TODO: Get current user from authentication and verify ownership
-    current_user_id: int = 1  # Placeholder
+    current_user: Annotated[User, Depends(get_current_active_user)]
 ) -> ArticleResponseSimple:
     """Update article"""
     article = await article_crud.get(db, id=article_id)
@@ -162,9 +162,9 @@ async def update_article(
             detail="Article not found"
         )
     
-    # Verify ownership (in real app, check if current user is author or admin)
-    # if article.author_id != current_user_id:
-    #     raise HTTPException(status_code=403, detail="Not enough permissions")
+    # Verify ownership (only author or superuser can update)
+    if article.author_id != current_user.id and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
     
     # Verify category exists if being updated
     if article_in.category_id and not await article_crud.verify_category_exists(db, category_id=article_in.category_id):
@@ -182,8 +182,7 @@ async def delete_article(
     *,
     db: Annotated[AsyncSession, Depends(async_get_db)],
     article_id: int,
-    # TODO: Get current user from authentication and verify ownership
-    current_user_id: int = 1  # Placeholder
+    current_user: Annotated[User, Depends(get_current_active_user)]
 ) -> None:
     """Delete article"""
     article = await article_crud.get(db, id=article_id)
@@ -193,9 +192,9 @@ async def delete_article(
             detail="Article not found"
         )
     
-    # Verify ownership (in real app, check if current user is author or admin)
-    # if article.author_id != current_user_id:
-    #     raise HTTPException(status_code=403, detail="Not enough permissions")
+    # Verify ownership (only author or superuser can delete)
+    if article.author_id != current_user.id and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
     
     success = await article_crud.delete(db, id=article_id)
     if not success:

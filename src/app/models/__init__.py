@@ -3,3 +3,4 @@ from .rate_limit import RateLimit
 from .tier import Tier
 from .user import User
 from .base_model import BaseCustomModel
+from .blog.blog_model import Blog

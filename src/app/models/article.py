@@ -1,7 +1,7 @@
 import uuid as uuid_pkg
 from datetime import UTC, datetime
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import ForeignKey, String, Text, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid6 import uuid7
@@ -27,7 +27,7 @@ class Article(Base):
     author: Mapped["User"] = relationship("User", back_populates="articles", init=False)
     
     uuid: Mapped[uuid_pkg.UUID] = mapped_column(UUID(as_uuid=True), default_factory=uuid7, unique=True, init=False)
-    created_at: Mapped[datetime] = mapped_column(default_factory=lambda: datetime.now(UTC), init=False)
-    updated_at: Mapped[datetime | None] = mapped_column(default=None, init=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default_factory=lambda: datetime.now(UTC), init=False)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None, init=False)
     is_published: Mapped[bool] = mapped_column(default=False, index=True)
     is_active: Mapped[bool] = mapped_column(default=True)

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Annotated
+from typing import Annotated, Optional
 from ...core.schemas import FullAuditSchema, UUIDSchema
 from datetime import datetime
 
@@ -13,6 +13,7 @@ class BlogBase(BaseModel):
             examples=["Đây là bài blogs"],
         ),
     ]
+    
     content: Annotated[
         str,
         Field(
@@ -28,6 +29,9 @@ class Blog(FullAuditSchema, BlogBase, UUIDSchema):
 
 
 class BlogRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
     title: Annotated[
         str,
         Field(
@@ -47,7 +51,7 @@ class BlogRead(BaseModel):
     created_by_user_id: int
     created_at: datetime
     updated_at: datetime
-    deleted_at: datetime
+    deleted_at: Optional[datetime]
     is_deleted: bool
 
 
@@ -88,3 +92,4 @@ class BlogDelete(BaseModel):
 
     is_deleted: bool
     deleted_at: datetime
+
