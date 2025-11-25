@@ -13,7 +13,7 @@ class BlogBase(BaseModel):
             examples=["Đây là bài blogs"],
         ),
     ]
-    
+
     content: Annotated[
         str,
         Field(
@@ -30,7 +30,7 @@ class Blog(FullAuditSchema, BlogBase, UUIDSchema):
 
 class BlogRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     title: Annotated[
         str,
@@ -93,3 +93,9 @@ class BlogDelete(BaseModel):
     is_deleted: bool
     deleted_at: datetime
 
+class BlogListResponse(BaseModel):
+    data: list[BlogRead]
+    total: int
+    page: int
+    size: int
+    pages: int
