@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ....core.db.database import async_get_db
 from ....services.blog.crud_blog_service import blog_service
 from ....models.user import User
-from ....api.dependencies import get_current_superuser, get_current_user
+from ....api.dependencies import  get_current_user
 import math
 
 router = APIRouter(prefix="/blogs", tags=["blogs"])
@@ -79,3 +79,18 @@ async def update_blog(
         )
     update_blog = await blog_service.update_blog(db, blog, input)
     return BlogRead.model_validate(update_blog)
+
+@router.put("/delete/{blog_id}", status_code=200)
+async def delete_blog(
+    db : Annotated[AsyncSession, Depends(async_get_db)], blog_id : int ,
+) -> BlogRead :
+    """Delete Blog"""
+    blog = await blog_service.delete_blog(db, blog_id)
+    if not blog:
+        raise HTTPException(
+            status_code=404,
+            detail="Blog not found"
+        )
+    return BlogRead.model_validate(blog)
+
+    

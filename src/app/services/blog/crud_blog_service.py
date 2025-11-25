@@ -14,7 +14,6 @@ class BlogService:
     """
     Services
     """
-
     async def create(
         self,
         db: AsyncSession,
@@ -40,7 +39,7 @@ class BlogService:
 
     async def get(self, db: AsyncSession, id: int) -> Optional[Blog]:
         """Get Blog by id"""
-        query = select(Blog).where(Blog.id == id)
+        query = select(Blog).where(Blog.id == id and Blog.is_deleted != True)
         result = await db.execute(query)
         return result.scalar_one_or_none()
 
@@ -51,8 +50,8 @@ class BlogService:
         limit: int = 100,
     ) -> tuple[list[Blog], int]:
         """Get Multi Blogs with pagination"""
-        query = select(Blog)
-        count_query = select(func.count(Blog.id))
+        query = select(Blog).where(Blog.is_deleted != True)
+        count_query = select(func.count(Blog.id)).where(Blog.is_deleted != True)
 
         query = query.offset(skip).limit(limit).order_by(Blog.created_at)
 
@@ -80,6 +79,20 @@ class BlogService:
         await db.commit()
         await db.refresh(data)
         return data
+
+    async def delete_blog(
+        self,
+        db: AsyncSession,
+        blog_id: int,
+    ) -> Optional[Blog]:
+        """DELETE SOFT BLOG"""
+        blog = await self.get(db, blog_id)
+        if blog:
+            blog.is_deleted = True
+            blog.deleted_at = datetime.now(UTC)
+            await db.commit()
+            await db.refresh(blog)
+        return blog
 
 
 blog_service = BlogService()
