@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, DateTime, Boolean, Integer, Text, ARRAY, ForeignKey
 from typing import List, Optional
 from datetime import datetime, UTC
-
+from .blog_reaction_model import BlogReaction
 
 class ReactionType(Base):
     __tablename__ = "reaction_types"
