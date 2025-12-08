@@ -58,3 +58,35 @@ class CommentReaction(Base):
             name="unique_comment_user_reaction",
         ),
     )
+
+     # Audit
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.now(UTC),
+        nullable=False,
+        index=True,
+        init=False,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.now(UTC),
+        onupdate=datetime.now(UTC),
+        nullable=False,
+        index=True,
+        init=False,
+    )
+
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        index=True,
+        init=False,
+    )
+
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=None,
+        init=False,
+    )

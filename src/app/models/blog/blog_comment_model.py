@@ -5,7 +5,8 @@ from sqlalchemy import String, DateTime, Boolean, Integer, Text, ARRAY, ForeignK
 from typing import List, Optional
 from datetime import datetime, UTC
 from ..user import User
-
+from .comment_reaction_model import CommentReaction
+from .blog_main_model import BlogMain
 class BlogComment(Base):
     __tablename__ = "blog_comments"
 
@@ -50,8 +51,8 @@ class BlogComment(Base):
     )
 
     # Relationships
-    blog: Mapped["Blog"] = relationship(
-        "Blog",
+    blog: Mapped["BlogMain"] = relationship(
+        "BlogMain",
         back_populates="comments",
         init=False,
     )

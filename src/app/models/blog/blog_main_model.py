@@ -4,8 +4,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, DateTime, Boolean, Integer, Text, ARRAY, ForeignKey
 from typing import List, Optional
 from datetime import datetime, UTC
-
-
+from .blog_category_model import BlogCategory
+from .blog_view_model import BlogView
+from .blog_comment_model import BlogComment
+from .blog_reaction_model import BlogReaction
+from ..user import User
 class BlogStatus(str, Enum):
     DRAFT = "draft"
     PUBLISHED = "published"
