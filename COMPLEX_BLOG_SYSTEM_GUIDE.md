@@ -592,7 +592,236 @@ class CommentTree(BaseModel):
 
 ## Services Layer
 
-### 1. Blog Service
+### 1. Base Service (CRUD Operations)
+
+Trước tiên cần tạo BaseService để reuse cho tất cả services:
+
+```python
+# src/app/services/base.py
+from typing import TypeVar, Generic, Type, Optional, List, Dict, Any
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete, func, and_
+from sqlalchemy.orm import selectinload
+from pydantic import BaseModel
+
+from ..core.db.database import Base
+
+# Type variables
+ModelType = TypeVar("ModelType", bound=Base)
+CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
+UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
+
+class BaseService(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+    """
+    Base service class với common CRUD operations
+    Tất cả services khác sẽ inherit từ class này
+    """
+    
+    def __init__(self, model: Type[ModelType]):
+        """
+        Args:
+            model: SQLAlchemy model class
+        """
+        self.model = model
+    
+    async def create(
+        self,
+        db: AsyncSession,
+        obj_in: CreateSchemaType | Dict[str, Any],
+        **kwargs
+    ) -> ModelType:
+        """Create new object"""
+        # Convert Pydantic model to dict
+        if isinstance(obj_in, BaseModel):
+            obj_data = obj_in.model_dump(exclude_unset=True)
+        else:
+            obj_data = obj_in
+        
+        # Merge với additional kwargs
+        obj_data.update(kwargs)
+        
+        # Create instance
+        db_obj = self.model(**obj_data)
+        db.add(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
+        return db_obj
+    
+    async def get(
+        self,
+        db: AsyncSession,
+        id: int,
+        load_relationships: bool = False
+    ) -> Optional[ModelType]:
+        """Get object by ID"""
+        query = select(self.model).where(self.model.id == id)
+        
+        # Optionally load all relationships
+        if load_relationships:
+            # Dynamically load all selectinload relationships
+            for relationship in self.model.__mapper__.relationships:
+                query = query.options(selectinload(getattr(self.model, relationship.key)))
+        
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+    
+    async def get_multi(
+        self,
+        db: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+        filters: Optional[Dict[str, Any]] = None,
+        order_by: Optional[str] = None
+    ) -> List[ModelType]:
+        """Get multiple objects với filtering và pagination"""
+        query = select(self.model)
+        
+        # Apply filters
+        if filters:
+            for field, value in filters.items():
+                if hasattr(self.model, field):
+                    if isinstance(value, list):
+                        query = query.where(getattr(self.model, field).in_(value))
+                    else:
+                        query = query.where(getattr(self.model, field) == value)
+        
+        # Apply ordering
+        if order_by:
+            if order_by.startswith('-'):
+                field = order_by[1:]
+                if hasattr(self.model, field):
+                    query = query.order_by(getattr(self.model, field).desc())
+            else:
+                if hasattr(self.model, order_by):
+                    query = query.order_by(getattr(self.model, order_by))
+        
+        # Apply pagination
+        query = query.offset(skip).limit(limit)
+        
+        result = await db.execute(query)
+        return result.scalars().all()
+    
+    async def update(
+        self,
+        db: AsyncSession,
+        id: int,
+        obj_in: UpdateSchemaType | Dict[str, Any],
+        **kwargs
+    ) -> Optional[ModelType]:
+        """Update object"""
+        # Get update data
+        if isinstance(obj_in, BaseModel):
+            update_data = obj_in.model_dump(exclude_unset=True)
+        else:
+            update_data = {k: v for k, v in obj_in.items() if v is not None}
+        
+        # Merge với kwargs
+        update_data.update(kwargs)
+        
+        if not update_data:
+            return await self.get(db, id)
+        
+        # Update
+        query = (
+            update(self.model)
+            .where(self.model.id == id)
+            .values(**update_data)
+            .returning(self.model)
+        )
+        
+        result = await db.execute(query)
+        await db.commit()
+        return result.scalar_one_or_none()
+    
+    async def delete(self, db: AsyncSession, id: int) -> bool:
+        """Hard delete object"""
+        query = delete(self.model).where(self.model.id == id)
+        result = await db.execute(query)
+        await db.commit()
+        return result.rowcount > 0
+    
+    async def soft_delete(self, db: AsyncSession, id: int) -> Optional[ModelType]:
+        """
+        Soft delete object (chỉ hoạt động nếu model có is_deleted field)
+        """
+        if not hasattr(self.model, 'is_deleted'):
+            raise NotImplementedError(
+                f"{self.model.__name__} doesn't support soft delete"
+            )
+        
+        from datetime import datetime, UTC
+        return await self.update(
+            db,
+            id,
+            {
+                "is_deleted": True,
+                "deleted_at": datetime.now(UTC)
+            }
+        )
+    
+    async def count(
+        self,
+        db: AsyncSession,
+        filters: Optional[Dict[str, Any]] = None
+    ) -> int:
+        """Count objects với optional filters"""
+        query = select(func.count(self.model.id))
+        
+        if filters:
+            for field, value in filters.items():
+                if hasattr(self.model, field):
+                    if isinstance(value, list):
+                        query = query.where(getattr(self.model, field).in_(value))
+                    else:
+                        query = query.where(getattr(self.model, field) == value)
+        
+        result = await db.execute(query)
+        return result.scalar()
+    
+    async def exists(self, db: AsyncSession, id: int) -> bool:
+        """Check if object exists"""
+        query = select(func.count(self.model.id)).where(self.model.id == id)
+        result = await db.execute(query)
+        count = result.scalar()
+        return count > 0
+    
+    async def get_or_404(self, db: AsyncSession, id: int) -> ModelType:
+        """Get object or raise NotFoundError"""
+        from ..core.exceptions import NotFoundError
+        
+        obj = await self.get(db, id)
+        if not obj:
+            raise NotFoundError(f"{self.model.__name__} with id {id} not found")
+        return obj
+```
+
+**Giải thích BaseService:**
+
+1. **Generic Types**: Sử dụng Python Generics để type-safe
+   - `ModelType`: SQLAlchemy model
+   - `CreateSchemaType`: Pydantic schema cho create
+   - `UpdateSchemaType`: Pydantic schema cho update
+
+2. **Common Methods**:
+   - `create()`: Tạo mới object
+   - `get()`: Lấy by ID
+   - `get_multi()`: Lấy nhiều với pagination
+   - `update()`: Update object
+   - `delete()`: Hard delete
+   - `soft_delete()`: Soft delete (cho models có is_deleted)
+   - `count()`: Đếm số lượng
+   - `exists()`: Check tồn tại
+   - `get_or_404()`: Get hoặc raise error
+
+3. **Dynamic Filtering**: Support filtering qua dict
+4. **Relationship Loading**: Option để load relationships
+5. **Pagination**: Built-in skip/limit
+
+---
+
+### 2. Blog Service
+
+Giờ extend BaseService để tạo BlogService:
 
 ```python
 # src/app/services/blog/blog_service.py
@@ -600,11 +829,11 @@ from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update, and_, or_, desc, asc
 from sqlalchemy.orm import selectinload, joinedload
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 import re
 from slugify import slugify
 
-from ...models.blog.blog_models import Blog, BlogCategory, BlogReaction, ReactionType
+from ...models.blog.blog_models import Blog, BlogCategory, BlogReaction, ReactionType, BlogView, BlogComment
 from ...schemas.blog.blog_schemas import BlogCreate, BlogUpdate, BlogStatus
 from ...core.exceptions import NotFoundError, ValidationError, PermissionError
 from ..base import BaseService
