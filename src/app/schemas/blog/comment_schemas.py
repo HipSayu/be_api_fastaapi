@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Annotated, List, Optional
 from datetime import datetime
-from .blog_status_schemas import ReactionCount
+from .blog_main_schemas import ReactionCount
 
 
 class CommentBase(BaseModel):

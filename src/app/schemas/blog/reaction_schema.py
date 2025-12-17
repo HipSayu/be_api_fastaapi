@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import List, Optional
-from .blog_status_schemas import ReactionCount
+from .blog_main_schemas import ReactionCount
 class ReactionTypeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int

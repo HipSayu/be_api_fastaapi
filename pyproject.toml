@@ -33,6 +33,7 @@ dependencies = [
     "ruff>=0.11.13",
     "mypy>=1.16.0",
     "aiohttp>=3.13.2",
+    "python-slugify>=8.0.4",
 ]
 
 [project.optional-dependencies]
