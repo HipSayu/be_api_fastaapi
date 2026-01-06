@@ -5,7 +5,7 @@ from sqlalchemy import String, DateTime, Boolean, Integer, Text, ARRAY, ForeignK
 from typing import List, Optional
 from datetime import datetime, UTC
 from .blog_reaction_model import BlogReaction
-
+from .blog_comment_model import CommentReaction
 class ReactionType(Base):
     __tablename__ = "reaction_types"
 
